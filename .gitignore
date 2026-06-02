@@ -1,0 +1,8 @@
+# Agent & IDE Configurations
+.antigravitycli/
+.DS_Store
+.idea/
+.vscode/
+
+# Local data files (if needed, but example file is tracked)
+# *.log

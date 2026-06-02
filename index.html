@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <!-- SEO Meta Tags -->
+  <title data-i18n="seo_title">RadonEye Analytics Dashboard - Interactive Radon Log Visualizer</title>
+  <meta name="description" content="Upload and visualize your RadonEye (RD200) log data CSV files. Features interactive charts, safety statistics, custom threshold settings, unit conversion, and local caching.">
+  <meta name="keywords" content="RadonEye, RD200, radon detector, csv visualizer, radon graph, air quality, safety, smart home">
+  <meta name="author" content="CarlosSG / RadonEye Web App">
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- ApexCharts CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <!-- Local Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Background Glow Effects -->
+  <div class="glow-bg glow-cyan"></div>
+  <div class="glow-bg glow-purple"></div>
+
+  <!-- Header -->
+  <header class="app-header">
+    <div class="header-container">
+      <div class="logo-area">
+        <div class="logo-icon">
+          <i data-lucide="shield-alert" class="icon-pulse"></i>
+        </div>
+        <div class="logo-text">
+          <h1 data-i18n="app_title">RadonEye <span>Analytics</span></h1>
+          <p data-i18n="app_subtitle">Interactive Radon Log Visualizer</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button type="button" id="btn-lang-toggle" class="btn btn-secondary btn-sm" title="Switch Language">
+          <i data-lucide="languages"></i>
+          <span id="lang-toggle-text">Español</span>
+        </button>
+        <a href="https://github.com/carlossg/radoneye" target="_blank" rel="noopener noreferrer" class="btn btn-icon btn-secondary" title="GitHub Repository">
+          <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-github">
+            <path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"></path>
+            <path d="M9 18c-4.51 2-5-2-7-2"></path>
+          </svg>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Area -->
+  <main class="app-main">
+    <div class="dashboard-grid">
+      
+      <!-- Sidebar Controls (Left) -->
+      <aside class="dashboard-sidebar">
+        
+        <!-- Upload Card -->
+        <section class="card upload-card" id="upload-section">
+          <div class="card-header">
+            <i data-lucide="upload-cloud"></i>
+            <h2 data-i18n="upload_title">Upload Data Log</h2>
+          </div>
+          <div class="card-body">
+            <div class="drag-drop-zone" id="drop-zone">
+              <input type="file" id="csv-file-input" accept=".csv,.txt" class="file-input-hidden">
+              <div class="upload-prompt">
+                <i data-lucide="file-text" class="upload-icon"></i>
+                <p class="upload-text-main" data-i18n="upload_drag_main">Drag & drop your CSV file here</p>
+                <p class="upload-text-sub" data-i18n="upload_drag_sub">or click to browse from your computer</p>
+                <span class="file-spec" data-i18n="upload_file_spec">Accepts RadonEye .csv or .txt logs</span>
+              </div>
+            </div>
+            
+            <div id="file-loaded-badge" class="file-badge hidden">
+              <i data-lucide="check-circle" class="badge-success-icon"></i>
+              <div class="file-info">
+                <span id="loaded-filename" class="filename-text" data-i18n="no_file_loaded">No file loaded</span>
+                <span id="loaded-filesize" class="filesize-text">0 KB</span>
+              </div>
+              <button id="clear-file-btn" class="btn-clear" title="Remove file">
+                <i data-lucide="x"></i>
+              </button>
+            </div>
+            
+            <div class="privacy-note">
+              <i data-lucide="lock"></i>
+              <span data-i18n="upload_privacy_note">Your data stays completely inside your local browser cache. No files are uploaded to any server.</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- Configuration Settings Card -->
+        <section class="card settings-card" id="settings-section">
+          <div class="card-header">
+            <i data-lucide="settings-2"></i>
+            <h2 data-i18n="settings_title">Visualizer Settings</h2>
+          </div>
+          <div class="card-body">
+            
+            <!-- Unit Selector -->
+            <div class="settings-group">
+              <label class="settings-label" data-i18n="label_display_unit">Display Unit</label>
+              <div class="unit-toggle-container">
+                <button type="button" id="btn-unit-bq" class="btn-toggle active" data-unit="Bq/m³">Bq/m³</button>
+                <button type="button" id="btn-unit-pci" class="btn-toggle" data-unit="pCi/L">pCi/L</button>
+              </div>
+              <small class="settings-help" data-i18n="help_display_unit">Converts measurements dynamically (1 pCi/L = 37 Bq/m³)</small>
+            </div>
+
+            <!-- Custom End Datetime -->
+            <div class="settings-group">
+              <label for="input-end-datetime" class="settings-label" data-i18n="label_end_time">Measurement End Time</label>
+              <div class="input-with-icon">
+                <i data-lucide="calendar"></i>
+                <input type="datetime-local" id="input-end-datetime" class="form-control">
+              </div>
+              <small class="settings-help" id="datetime-source-help" data-i18n="help_datetime_source">Parsed from filename or current time</small>
+            </div>
+
+            <!-- Alarm Threshold -->
+            <div class="settings-group">
+              <div class="settings-label-row">
+                <label for="input-threshold" class="settings-label" data-i18n="label_alarm_threshold">Alarm Threshold</label>
+                <button type="button" id="btn-reset-threshold" class="btn-text-action" data-i18n="btn_reset">Reset to File Default</button>
+              </div>
+              <div class="input-with-suffix">
+                <input type="number" id="input-threshold" class="form-control" min="0" step="any">
+                <span class="input-suffix" id="threshold-unit-label">Bq/m³</span>
+              </div>
+            </div>
+
+            <!-- Toggle Data Labels -->
+            <div class="settings-group toggle-group" style="margin-top: 24px;">
+              <label for="checkbox-show-labels" class="settings-label" style="margin-bottom: 0; cursor: pointer;" data-i18n="label_show_chart_values">Show values on graph</label>
+              <label class="switch-container">
+                <input type="checkbox" id="checkbox-show-labels">
+                <span class="slider"></span>
+              </label>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- Device Info Card -->
+        <section class="card device-card" id="device-info-section">
+          <div class="card-header">
+            <i data-lucide="cpu"></i>
+            <h2 data-i18n="device_title">Device Metadata</h2>
+          </div>
+          <div class="card-body">
+            <div class="info-list">
+              <div class="info-item">
+                <span class="info-label" data-i18n="label_model">Model Name</span>
+                <span id="meta-model" class="info-value">--</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label" data-i18n="label_serial">Serial Number</span>
+                <span id="meta-serial" class="info-value">--</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label" data-i18n="label_total_readings">Total Readings</span>
+                <span id="meta-readings" class="info-value">--</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label" data-i18n="label_interval">Sample Interval</span>
+                <span id="meta-interval" class="info-value">--</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label" data-i18n="label_date_range">Date Range</span>
+                <span id="meta-date-range" class="info-value-block">--</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </aside>
+      
+      <!-- Dashboard Contents (Right) -->
+      <div class="dashboard-content">
+        
+        <!-- Metrics Grid -->
+        <section class="metrics-grid">
+          
+          <!-- Average Metric -->
+          <div class="card metric-card" id="metric-avg-card">
+            <div class="metric-icon bg-cyan-glow">
+              <i data-lucide="activity" class="color-cyan"></i>
+            </div>
+            <div class="metric-data">
+              <span class="metric-label" data-i18n="metric_avg_label">Average Radon Level</span>
+              <div class="metric-value-row">
+                <span id="metric-avg-value" class="metric-value">--</span>
+                <span id="metric-avg-unit" class="metric-unit">Bq/m³</span>
+              </div>
+              <div class="metric-badge" id="safety-status-badge">
+                <span class="dot"></span>
+                <span class="badge-text" data-i18n="badge_no_data">No Data Loaded</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Max Metric -->
+          <div class="card metric-card" id="metric-max-card">
+            <div class="metric-icon bg-red-glow">
+              <i data-lucide="trending-up" class="color-danger"></i>
+            </div>
+            <div class="metric-data">
+              <span class="metric-label" data-i18n="metric_max_label">Maximum Radon Level</span>
+              <div class="metric-value-row">
+                <span id="metric-max-value" class="metric-value">--</span>
+                <span id="metric-max-unit" class="metric-unit">Bq/m³</span>
+              </div>
+              <div class="metric-sub" id="metric-max-time" data-i18n="at_time_placeholder">At: --</div>
+            </div>
+          </div>
+
+          <!-- Min Metric -->
+          <div class="card metric-card" id="metric-min-card">
+            <div class="metric-icon bg-green-glow">
+              <i data-lucide="trending-down" class="color-green"></i>
+            </div>
+            <div class="metric-data">
+              <span class="metric-label" data-i18n="metric_min_label">Minimum Radon Level</span>
+              <div class="metric-value-row">
+                <span id="metric-min-value" class="metric-value">--</span>
+                <span id="metric-min-unit" class="metric-unit">Bq/m³</span>
+              </div>
+              <div class="metric-sub" id="metric-min-time" data-i18n="at_time_placeholder">At: --</div>
+            </div>
+          </div>
+
+          <!-- Exposure Metric -->
+          <div class="card metric-card" id="metric-exposure-card">
+            <div class="metric-icon bg-warning-glow">
+              <i data-lucide="alert-triangle" class="color-warning"></i>
+            </div>
+            <div class="metric-data">
+              <span class="metric-label" data-i18n="metric_exposure_label">Time Above Threshold</span>
+              <div class="metric-value-row">
+                <span id="metric-exposure-percent" class="metric-value">--</span>
+                <span class="metric-unit">%</span>
+              </div>
+              <div class="metric-sub" id="metric-exposure-hours" data-i18n="hours_placeholder">-- / -- hours</div>
+            </div>
+          </div>
+
+        </section>
+
+        <!-- Chart Card -->
+        <section class="card chart-card">
+          <div class="card-header chart-header-row">
+            <div class="header-left">
+              <i data-lucide="line-chart"></i>
+              <h2 data-i18n="chart_title">Time-Series Analytics</h2>
+            </div>
+            <div class="header-right">
+              <div id="chart-legend" class="chart-legend">
+                <span class="legend-item"><span class="legend-color cyan"></span> <span data-i18n="legend_radon">Radon Level</span></span>
+                <span class="legend-item"><span class="legend-color danger dashed"></span> <span id="legend-threshold-text">Alarm Threshold</span></span>
+              </div>
+            </div>
+          </div>
+          <div class="card-body chart-body">
+            <div id="radon-chart" class="chart-container">
+              <div class="chart-loader">
+                <div class="spinner"></div>
+                <p data-i18n="chart_loader_text">Waiting for data upload...</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Data Table Card -->
+        <section class="card table-card" id="table-section">
+          <div class="card-header table-header-row">
+            <div class="header-left">
+              <i data-lucide="database"></i>
+              <h2 data-i18n="table_title">Individual Log Records</h2>
+            </div>
+            <div class="header-right table-controls">
+              <div class="search-box">
+                <i data-lucide="search"></i>
+                <input type="text" id="table-search" placeholder="Search records..." data-i18n-placeholder="search_placeholder">
+              </div>
+              <button type="button" id="btn-export-csv" class="btn btn-secondary">
+                <i data-lucide="download"></i> <span data-i18n="btn_export">Export CSV</span>
+              </button>
+            </div>
+          </div>
+          <div class="card-body table-body">
+            <div class="table-responsive">
+              <table class="data-table" id="readings-table">
+                <thead>
+                  <tr>
+                    <th data-i18n="th_no">Data No.</th>
+                    <th data-i18n="th_datetime">Date & Time</th>
+                    <th data-i18n="th_value">Radon Level</th>
+                    <th data-i18n="th_status">Status</th>
+                  </tr>
+                </thead>
+                <tbody id="table-rows">
+                  <tr>
+                    <td colspan="4" class="table-empty" id="table-empty-message" data-i18n="table_empty">No data available. Upload a CSV to view log list.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            
+            <!-- Table Pagination -->
+            <div class="pagination-container" id="table-pagination">
+              <span class="pagination-info" id="pagination-info-text" data-i18n="pagination_info_placeholder">Showing 0 to 0 of 0 entries</span>
+              <div class="pagination-buttons">
+                <button type="button" id="btn-page-prev" class="btn btn-secondary btn-sm" disabled>
+                  <i data-lucide="chevron-left"></i> <span data-i18n="btn_prev">Previous</span>
+                </button>
+                <div class="page-numbers-container" id="page-numbers">
+                  <!-- Dynamic page numbers -->
+                </div>
+                <button type="button" id="btn-page-next" class="btn btn-secondary btn-sm" disabled>
+                  <span data-i18n="btn_next">Next</span> <i data-lucide="chevron-right"></i>
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+      </div>
+    </div>
+  </main>
+
+  <!-- Radon Safety & Info Section -->
+  <section class="safety-guide-section">
+    <div class="guide-container">
+      <h2 data-i18n="guide_title">Radon Levels & Safety Information</h2>
+      <p class="guide-intro" data-i18n="guide_intro">Radon is a naturally occurring radioactive gas that can cause lung cancer. Because it is invisible, odorless, and tasteless, measuring is the only way to know if you are exposed.</p>
+      
+      <div class="guide-cards">
+        <div class="guide-card border-green">
+          <div class="guide-badge safe" data-i18n="guide_card1_badge">Safe (Under WHO Guidance)</div>
+          <h3>&lt; 100 Bq/m³ (2.7 pCi/L)</h3>
+          <p data-i18n="guide_card1_text">The World Health Organization (WHO) recommends keeping average radon levels below 100 Bq/m³ to minimize health risks. No action is required, though continuous monitoring is advised.</p>
+        </div>
+        <div class="guide-card border-warning">
+          <div class="guide-badge warning" data-i18n="guide_card2_badge">Elevated (WHO Limit)</div>
+          <h3>100 - 148 Bq/m³ (2.7 - 4.0 pCi/L)</h3>
+          <p data-i18n="guide_card2_text">Action is recommended. This level exceeds WHO's reference limit. While it is below the EPA action line, you should consider sealing cracks in your foundation, improving ventilation, or doing a long-term test.</p>
+        </div>
+        <div class="guide-card border-danger">
+          <div class="guide-badge danger" data-i18n="guide_card3_badge">High Risk (EPA Action Level)</div>
+          <h3>&ge; 148 Bq/m³ (4.0 pCi/L)</h3>
+          <p data-i18n="guide_card3_text">Immediate action is strongly recommended by the US EPA. Mitigating your home is necessary to lower radon concentration. Levels above 148 Bq/m³ pose significantly elevated health risks over time.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="app-footer">
+    <div class="footer-container">
+      <p data-i18n="footer_copyright">&copy; 2026 RadonEye Analytics Dashboard. Run completely client-side. Data remains in your browser's local cache.</p>
+      <p class="footer-links">
+        <a href="https://github.com/carlossg/radoneye" target="_blank" rel="noopener noreferrer" data-i18n="footer_link_source">Source Code</a>
+      </p>
+    </div>
+  </footer>
+
+  <!-- Local Script -->
+  <script src="app.js"></script>
+</body>
+</html>
