@@ -2,7 +2,7 @@
 
 An interactive, responsive, and completely client-side dashboard for visualizing and analyzing RadonEye (RD200) radon log data. Designed to run directly in the browser and easily hostable via GitHub Pages.
 
-Live analytics demo loaded with example log data.
+[Live analytics demo loaded with example log data.](https://carlossg.github.io/radoneye/)
 
 ## Key Features
 
